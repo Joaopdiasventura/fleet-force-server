@@ -1,0 +1,4 @@
+﻿combustivel,uf,mes_referencia,preco_medio_referencia_brl_l,litros_excedentes_est,custo_cenario_brl,metodologia
+DIESEL S10,MG,2026-06,6.995431145431145,2641.952077022676,18481.593844340932,alternatives_not_additive_estimate_not_savings
+ETANOL,MG,2026-06,4.2151836158192095,2641.952077022676,11136.313108845514,alternatives_not_additive_estimate_not_savings
+GASOLINA,MG,2026-06,6.361191756272402,2641.952077022676,16805.963772823394,alternatives_not_additive_estimate_not_savings

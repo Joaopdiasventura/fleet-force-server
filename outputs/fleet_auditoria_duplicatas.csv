@@ -1,0 +1,3 @@
+﻿source_row_id,fleet_id,model,os_count,labor_internal,labor_external,parts,tires,fuel_expense,lubricant,wash,km,kmpl_reported,total_expense,cost_per_km,source_page,source_y,model_norm,audit_status,duplicate_key
+110,GMF7102,SPACEFOX,5.0,312.74,762.0,2349.7,836.0,11561.16,0.0,218.64,20100.0,11.77,16040.24,0.8,7,127.66,SPACEFOX,pending_source_confirmation,5323d3acf6609ed7
+111,GMF7102,SPACEFOX,5.0,312.74,762.0,2349.7,836.0,11561.16,0.0,218.64,20100.0,11.77,16040.24,0.8,7,150.66,SPACEFOX,pending_source_confirmation,5323d3acf6609ed7

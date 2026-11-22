@@ -1,0 +1,10 @@
+# Pacotes principais, com limites compatíveis com o código e versões recentes.
+numpy>=1.26,<3
+pandas>=2.1,<3
+scikit-learn>=1.4,<2
+scipy>=1.11,<2
+pdfplumber>=0.11,<1
+PyMuPDF>=1.23,<2
+joblib>=1.3,<2
+matplotlib>=3.8,<4
+ipykernel>=6.25,<8

@@ -1,0 +1,39 @@
+{
+  "version": "fleet-force-unified-v1",
+  "analysis_scope": "annual_report_2025_for_UFMG",
+  "currency": "BRL",
+  "distance_unit": "km",
+  "efficiency_unit": "km_per_liter",
+  "period_aggregation": "UFMG_2025_annual_per_vehicle",
+  "liters_source": "estimated_from_distance_and_reported_efficiency",
+  "price_uf": "MG",
+  "price_source": "processed_anp_monthly_csv",
+  "pbev_source": "preprocessed_pbev_csv_needs_semantic_audit",
+  "expense_component_coverage": "unknown_if_missing_columns",
+  "model_promotion_policy": "independent_holdout_required_for_operational_efficiency",
+  "reference_priority": "same_model_peer_first_then_independently_validated_ml",
+  "price_scenarios": "different_fuels_not_additive",
+  "settings": {
+    "min_distance_km": 500.0,
+    "min_other_peers": 3,
+    "moderate_overuse": 0.1,
+    "high_overuse": 0.25,
+    "min_priority_liters": 25.0,
+    "pbev_tolerance": 0.2,
+    "price_uf": "MG",
+    "ml_min_train_rows": 150,
+    "ml_min_model_families": 25,
+    "ml_min_gain": 0.1,
+    "ml_max_category_regression": 0.1,
+    "ml_min_segment_samples": 8,
+    "ml_min_external_rows": 40,
+    "ml_require_external_holdout": true,
+    "anomaly_contamination": 0.07,
+    "default_period_months": 12
+  },
+  "input_hashes": {
+    "/mnt/data/fleet_force_unificado/data/despesa-veiculos-ufmg-2025.pdf": "8cd256ae8ac89fe98d0739d216fcfe1d327d9816e60eeb2d64bd1256eefbc7fd",
+    "/mnt/data/fleet_force_unificado/data/pbev_catalogo_historico_extraido_auditar.csv": "57674271cfa25fa7b13bdf32e78603ac3df3d891593a828f5029b87ad98a04ca",
+    "/mnt/data/fleet_force_unificado/data/anp_precos_mensais_uf.csv": "ec156f67c420727aab6ef29898084ba9392b2fabdb71cc8d3ae994075219a2c3"
+  }
+}

@@ -1,0 +1,81 @@
+﻿model_norm,peer_confidence,vehicles,eligible
+ALLEGRO R,insufficient,1,1
+AMAROK CD,moderate,11,11
+AMBULANCIA,insufficient,2,2
+ATHENAS,insufficient,1,1
+CAMINHAO,low,8,8
+CAMINHAO 608,insufficient,1,1
+CAMINHAO 710,insufficient,1,1
+CAMINHAO 8500,insufficient,1,1
+CAMINHAO BAU,insufficient,1,1
+CAMINHAO HR,insufficient,1,1
+CAVALO MEC,insufficient,1,0
+COMIL,insufficient,3,3
+CRONOS,moderate,4,4
+DAILY NIKS MIC,insufficient,2,2
+DOBLO,insufficient,1,1
+DOBLO ELX,insufficient,2,1
+DOBLO EX,insufficient,1,1
+DRC 4X2,insufficient,1,1
+FIESTA 1 6,moderate,8,8
+FLUENCE,insufficient,4,3
+FRONTIER 4X4,insufficient,1,0
+FRONTIER SE,insufficient,2,2
+HR,insufficient,1,1
+JUMPER M33M,insufficient,1,1
+KOMBI,insufficient,3,0
+KOMBI,moderate,27,27
+KOMBI FURGAO,insufficient,1,1
+L200 GL,insufficient,4,3
+LOGAN EXP 1 0,insufficient,1,1
+LOGAN EXP 1 6,insufficient,2,2
+M POLO,insufficient,1,1
+MARCOPOLO,insufficient,1,0
+MARCOPOLO,low,6,6
+MASTER,insufficient,1,1
+MERIVA JOY,insufficient,1,1
+MICRO ONIBUS,insufficient,1,1
+NISSAN,insufficient,3,3
+ONIBUS,insufficient,3,3
+ONIBUS 15180,insufficient,1,1
+ONIBUS K 112,insufficient,1,0
+ONIBUS MASCA,insufficient,1,1
+ONIBUS OH,insufficient,1,1
+ONIBUS ROMA,insufficient,1,1
+PALIO,insufficient,1,0
+PALIO ELX FLEX,moderate,5,5
+PALIO WK,insufficient,2,2
+PARATI 1 6,insufficient,2,2
+PIC UP S10 2 8 S,insufficient,1,0
+PICK UP,insufficient,2,2
+PICK UP L200,insufficient,1,1
+PICK UP S10 2 2,insufficient,3,2
+PICK UP S10 LT,insufficient,1,1
+PRISMA,insufficient,1,1
+RANGER XL,insufficient,1,1
+REBOQUE,insufficient,1,0
+RENAULT,insufficient,1,1
+RODOVIARIO,insufficient,1,1
+SAVEIRO 1 6 CE,insufficient,2,2
+SAVEIRO 1 6 CS,insufficient,2,2
+SCENIC EXP,insufficient,1,1
+SENTRA 2 0,insufficient,1,1
+SIENA ELX FLEX,insufficient,2,2
+SPACECROSS,moderate,5,5
+SPACEFOX,insufficient,3,0
+SPACEFOX,moderate,16,16
+STRADA FIRE,insufficient,3,3
+STRADA TREK,insufficient,2,2
+T CROSS,insufficient,3,3
+TANQUE,insufficient,1,0
+TRACKER 2 0,insufficient,1,1
+UNO MILLE,moderate,6,6
+UNO MILLE FIRE,moderate,9,9
+UNO VIVACE 1 0,insufficient,1,1
+VAN DAYLE,insufficient,2,2
+VAN DUCATO,insufficient,3,3
+VAN FURGAO,insufficient,1,1
+VAN SPRINTER,moderate,6,6
+VAN TRANSIT,insufficient,1,1
+VOYAGE 1 6,insufficient,1,1
+WEEKEND ADV,insufficient,2,2
