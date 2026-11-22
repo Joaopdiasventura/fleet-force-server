@@ -11,17 +11,22 @@ import numpy as np
 import pandas as pd
 from fastapi.testclient import TestClient
 
-import api
+from dataclasses import replace
+from src.main import create_app
+from src.config.settings import AppSettings, BASE_DIR
+from src.core.references.providers import ProcessedReferenceProvider, InMemoryReferenceProvider
+from src.core.fleet.reports import FleetReportService
+from src.core.fleet.repositories import FileReportRepository
 from fleet_force_engine import Settings, run_engine
-from fleet_force_engine import analysis_service
-from fleet_force_engine.config import FLEET_COLUMNS
-from fleet_force_engine.csv_adapter import UFMG_HEADERS, parse_upload_csv
-from fleet_force_engine.serialization import serialize_analysis
+from src.core.fleet.fields import FLEET_COLUMNS
+from src.core.fleet.csv_adapter import UFMG_HEADERS, parse_upload_csv
+from src.core.analytics.schemas import serialize_analysis
 
 
 class AnalyzeTests(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(api.app)
+        self.app = create_app()
+        self.client = TestClient(self.app)
 
     def upload(self, content, filename='fleet.csv', **kwargs):
         return self.client.post('/v1/fleet/analyze', files={'file': (filename, content, 'text/csv')}, **kwargs)
@@ -98,13 +103,13 @@ class AnalyzeTests(unittest.TestCase):
                 r = self.upload(content)
                 self.assertEqual(r.status_code, status, r.text)
                 self.assertEqual(r.json()['error']['code'], code)
-                self.assertNotIn(str(analysis_service.BASE_DIR), r.text)
+                self.assertNotIn(str(BASE_DIR), r.text)
 
     def test_file_and_request_validation(self):
         self.assertEqual(self.client.post('/v1/fleet/analyze').status_code, 422)
         self.assertEqual(self.upload(self.normalized(), 'fleet.exe').status_code, 415)
         self.assertEqual(self.upload(self.normalized(), data={'uf': 'ZZ'}).status_code, 400)
-        with patch.object(api, 'MAX_UPLOAD_BYTES', 20):
+        with patch.object(self.app.state, 'settings', replace(self.app.state.settings, max_upload_bytes=20)):
             r = self.upload(self.normalized())
             self.assertEqual(r.status_code, 413)
             self.assertEqual(r.json()['error']['code'], 'UPLOAD_TOO_LARGE')
@@ -146,10 +151,10 @@ class AnalyzeTests(unittest.TestCase):
     def test_no_ml_training_and_missing_references(self):
         with tempfile.TemporaryDirectory() as directory:
             missing = Path(directory) / 'missing.csv'
-            with patch.object(analysis_service, 'ANP_PATH', missing), patch.object(analysis_service, 'PBEV_PATH', missing), \
-                 patch('fleet_force_engine.engine.fit_efficiency', side_effect=AssertionError('must not train')), \
-                 patch('fleet_force_engine.engine.fit_price_model', side_effect=AssertionError('must not train')), \
-                 patch('fleet_force_engine.engine.add_anomalies', side_effect=AssertionError('must not fit')):
+            with patch.object(self.app.state.upload_service, 'references', ProcessedReferenceProvider(missing, missing)), \
+                 patch('src.core.learning.service.fit_efficiency', side_effect=AssertionError('must not train')), \
+                 patch('src.core.learning.service.fit_price_model', side_effect=AssertionError('must not train')), \
+                 patch('src.core.learning.service.add_anomalies', side_effect=AssertionError('must not fit')):
                 r = self.upload(self.raw())
         self.assertEqual(r.status_code, 200, r.text)
         data = r.json()
@@ -170,7 +175,7 @@ class AnalyzeTests(unittest.TestCase):
             frame.to_csv(path, index=False)
             result = run_engine(fleet_csv=path, cfg=Settings(), output_dir=Path(directory) / 'reports')
             self.assertTrue((Path(directory) / 'reports/fleet_kpis.json').is_file())
-        with patch.object(analysis_service, 'references', return_value=pd.DataFrame()):
+        with patch.object(self.app.state.upload_service, 'references', InMemoryReferenceProvider(pd.DataFrame(), pd.DataFrame())):
             data = self.upload(content).json()
         expected = serialize_analysis(result, 'direct', 'ufmg', 'MG')
         self.assertEqual(data['summary'], expected['summary'])
@@ -186,8 +191,8 @@ class AnalyzeTests(unittest.TestCase):
             marker = out / 'sentinel'
             marker.write_text('unchanged')
             # Reject any attempt to export models, results, or create our own temporary upload.
-            with patch.object(api, 'OUT', out), \
-                 patch('fleet_force_engine.engine.export_results', side_effect=AssertionError('must not export')), \
+            with patch.object(self.app.state, 'report_service', FleetReportService(FileReportRepository(out))), \
+                 patch('src.config.engine.export_results', side_effect=AssertionError('must not export')), \
                  patch('tempfile.TemporaryDirectory', side_effect=AssertionError('must stay in memory')):
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     futures = [pool.submit(self.upload, self.normalized(fleet_id=f'00{i}', expense=i * 1000)) for i in [1, 2]]
@@ -202,12 +207,12 @@ class AnalyzeTests(unittest.TestCase):
     def test_json_and_unexpected_error(self):
         data = self.upload(self.normalized(km=0, kmpl='')).json()
         json.dumps(data, allow_nan=False)
-        with patch.object(api, 'analyze_csv', side_effect=RuntimeError('/secret/internal/path')):
+        with patch.object(self.app.state.upload_service, 'analyze', side_effect=RuntimeError('/secret/internal/path')):
             r = self.upload(self.normalized())
             self.assertEqual(r.status_code, 500)
             self.assertNotIn('secret', r.text)
         frame = pd.DataFrame({'x': [np.nan, np.inf, -np.inf]})
-        from fleet_force_engine.serialization import records
+        from src.core.analytics.schemas import records
         self.assertEqual(records(frame), [{'x': None}] * 3)
 
     def test_upload_file_closed_on_success_and_errors(self):
@@ -223,7 +228,7 @@ class AnalyzeTests(unittest.TestCase):
             self.assertEqual(self.upload(self.normalized()).status_code, 200)
             self.assertEqual(self.upload('broken').status_code, 422)
             self.assertEqual(self.upload('broken', 'file.exe').status_code, 415)
-            with patch.object(api, 'MAX_UPLOAD_BYTES', 8):
+            with patch.object(self.app.state, 'settings', replace(self.app.state.settings, max_upload_bytes=8)):
                 self.assertEqual(self.upload(self.normalized()).status_code, 413)
             # Exceed the multipart spool threshold to exercise parser-owned disk cleanup.
             self.assertEqual(self.upload('x' * (2 * 1024 * 1024)).status_code, 422)
@@ -234,7 +239,7 @@ class AnalyzeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             corrupt = Path(directory) / 'corrupt.csv'
             corrupt.write_text('not,a,reference\n1,2,3')
-            with patch.object(analysis_service, 'ANP_PATH', corrupt), patch.object(analysis_service, 'PBEV_PATH', corrupt):
+            with patch.object(self.app.state.upload_service, 'references', ProcessedReferenceProvider(corrupt, corrupt)):
                 r = self.upload(self.normalized())
         self.assertEqual(r.status_code, 200, r.text)
         self.assertFalse(r.json()['metadata']['availability']['anp'])
@@ -247,7 +252,7 @@ class AnalyzeTests(unittest.TestCase):
             pd.DataFrame([{'fleet_id': 'ABC', 'vehicle_category': 'automovel', 'unified_priority_alert': True}]).to_csv(out / 'fleet_vehicles.csv', index=False)
             for filename in ['fleet_resumo_categorias.csv', 'fleet_priority_ranking.csv', 'anp_reference_prices.csv']:
                 pd.DataFrame({'value': [1]}).to_csv(out / filename, index=False)
-            with patch.object(api, 'OUT', out):
+            with patch.object(self.app.state, 'report_service', FleetReportService(FileReportRepository(out))):
                 for path in ['summary', 'models/quality', 'vehicles', 'vehicles/ABC', 'categories', 'priorities', 'reference-prices']:
                     self.assertEqual(self.client.get('/v1/fleet/' + path).status_code, 200)
         self.assertEqual(self.client.get('/docs').status_code, 200)

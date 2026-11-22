@@ -1,0 +1,5 @@
+fleet_id,model,os_count,labor_internal,labor_external,parts,tires,fuel_expense,lubricant,wash,km,kmpl_reported,total_expense,cost_per_km
+ABC0000,ONIX 1.0,1.0,0.0,0.0,0.0,0.0,1500.0,0.0,0.0,2000,8,2000.0,0.0
+ABC0001,ONIX 1.0,1.0,0.0,0.0,0.0,0.0,1500.0,0.0,0.0,2000,10,2000.0,0.0
+ABC0002,ONIX 1.0,1.0,0.0,0.0,0.0,0.0,1500.0,0.0,0.0,2000,11,2000.0,0.0
+ABC0003,ONIX 1.0,1.0,0.0,0.0,0.0,0.0,1500.0,0.0,0.0,2000,12,2000.0,0.0

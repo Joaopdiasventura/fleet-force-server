@@ -4,12 +4,13 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import numpy as np
 import pandas as pd
-from fleet_force_engine.config import Settings,FLEET_COLUMNS
-from fleet_force_engine.utils import norm
-from fleet_force_engine.ingest import consolidate_raw_ufmg
-from fleet_force_engine.deterministic import apply_quality,add_peer_benchmark,add_cost_analytics,summarize
-from fleet_force_engine.learning import fit_efficiency,attach_efficiency_predictions
-from fleet_force_engine.references import match_pbev
+from src.core.policy import Settings
+from src.core.fleet.fields import FLEET_COLUMNS
+from src.shared.numbers import norm
+from src.core.fleet.service import consolidate_raw_ufmg
+from src.core.analytics.calculations import apply_quality,add_peer_benchmark,add_cost_analytics,summarize
+from src.core.learning.efficiency import fit_efficiency,attach_efficiency_predictions
+from src.core.references.rules import match_pbev
 
 
 class EngineTests(unittest.TestCase):

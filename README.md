@@ -7,27 +7,91 @@ A camada determinística é a referência principal. O ML só assume um papel op
 ## Estrutura
 
 ```text
-fleet_force_unificado/
-├── run.py                       # CLI de execução (um motor)
-├── api.py                       # API REST de relatórios e uploads CSV
-├── requirements.txt
-├── requirements-api.txt
-├── notebooks/fleet_force_unificado.ipynb
-├── examples/fleet.service.ts    # Integração Angular
-├── data/
-│   ├── anp_precos_mensais_uf.csv
-│   └── pbev_catalogo_historico_extraido_auditar.csv
-├── fleet_force_engine/
-│   ├── config.py                # Regras e limiares
-│   ├── utils.py                 # Normalização e tipos
-│   ├── ingest.py                # UFMG PDF ou CSV; dedup
-│   ├── deterministic.py         # Regras US01/US02/US03, Pareto, custos
-│   ├── references.py            # PBEV e ANP
-│   ├── pbev_extract.py          # Extração histórica (não auditada)
-│   ├── learning.py              # Modelos, backtests, gate
-│   └── engine.py                # Orquestração, API de biblioteca, exports
-└── tests/test_engine.py
+src/
+├── main.py                    # FastAPI bootstrap / create_app
+├── cli.py                     # CLI parser e apresentação
+├── config/
+│   ├── settings.py            # Ambiente, caminhos e limite de upload
+│   ├── dependencies.py        # Composição explícita e dependências HTTP
+│   ├── engine.py              # Fachada de composição run_engine
+│   └── http.py                # Mapeamento central de exceções
+├── core/
+│   ├── policy.py              # Settings: regras/limiares versionados, sem ambiente
+│   ├── fleet/                 # Schema, classificação, consolidação e consulta
+│   │   ├── service.py         # Normalização/consolidação pura e auditoria
+│   │   ├── adapters.py        # Leitura de CSV/PDF do CLI
+│   │   ├── csv_adapter.py     # Decodificação de upload e aliases UFMG
+│   │   ├── ports.py           # FleetDecoder e ReportRepository (Protocols)
+│   │   ├── repositories.py    # Relatórios em filesystem
+│   │   ├── reports.py         # Consultas por repositório injetado
+│   │   └── router.py          # GETs existentes
+│   ├── analytics/
+│   │   ├── calculations.py    # Qualidade, peers, financeiro e KPIs
+│   │   ├── service.py         # Pipeline único em memória (AnalysisService)
+│   │   ├── uploads.py         # Caso de uso de upload com providers injetados
+│   │   ├── models.py          # EngineOutput
+│   │   ├── schemas.py         # Contrato JSON existente do upload
+│   │   ├── artifacts.py       # Exportação CSV/JSON, fora do pipeline
+│   │   └── router.py          # POST /v1/fleet/analyze
+│   ├── references/
+│   │   ├── rules.py           # Normalização, match PBEV e cenários ANP puros
+│   │   ├── models.py          # ReferenceData e proveniência
+│   │   ├── ports.py           # ReferenceProvider (Protocol)
+│   │   ├── providers.py       # Providers processado, CLI e em memória; cache
+│   │   ├── adapters.py        # CSV processado / leitura ZIP ANP
+│   │   └── pbev_extract.py    # Extração histórica ZIP/PDF explícita do CLI
+│   └── learning/
+│       ├── service.py         # Treinamento/gates ou fallback sem treinamento
+│       ├── efficiency.py      # Consumo, validação e inferência
+│       ├── prices.py          # Backtests temporais e previsão
+│       ├── anomalies.py       # Investigação exploratória
+│       └── artifacts.py       # Serialização Joblib de candidatos
+└── shared/                    # Números/texto, JSON, hashes, HTTP e logging
+api.py                         # Compatibilidade: uvicorn api:app
+run.py                         # Compatibilidade: python run.py
+fleet_force_engine/__init__.py  # Fachada pública: Settings, run_engine, EngineOutput
+tests/                        # Regressão, serviços, adapters e HTTP
+data/                         # Referências processadas existentes
 ```
+
+## Fronteiras e composição
+
+`fleet` possui a identidade, classificação, normalização e consolidação de veículos.
+`analytics` possui o pipeline determinístico, as regras de comparação e os resultados.
+`references` possui a semântica/proveniência ANP/PBEV e seus providers.
+`learning` possui treinamento, inferência, backtests e gates de promoção.
+Pandas/NumPy permanecem os modelos tabulares do domínio; não há ORM nem banco.
+
+`AnalysisService.execute()` recebe somente tabelas em memória, `ReferenceData` e
+`Settings`. Não conhece FastAPI, caminhos, CLI, caches, relatórios ou Joblib. Executa
+qualidade → peers → custos → anomalias (quando habilitadas) → referências → aprendizado
+com gates → resumo e prioridades. Essa ordem é a mesma de antes da refatoração.
+`UploadAnalysisService` orquestra o decoder e o `ReferenceProvider` injetados e aplica
+o contrato JSON existente; nunca escreve artefatos. `LearningService` mantém a
+separação entre treinamento do CLI e fallback do upload.
+
+As dependências fluem dos routers/adapters para serviços e regras. Implementações de
+filesystem ficam em `adapters.py`, `repositories.py`, `providers.py` e `artifacts.py`;
+serviços usam `FleetDecoder`, `ReferenceProvider` e `ReportRepository` como contratos
+explícitos, substituíveis nos testes. `src/config/dependencies.py` compõe os serviços
+de cada aplicação; `create_app(AppSettings(...))` e `app.dependency_overrides` permitem
+injeção nos testes sem alterar globais de módulo. Não há container genérico.
+
+`AppSettings` centraliza ambiente, caminhos e limites HTTP. `Settings` em
+`src/core/policy.py` continua representando exclusivamente a política analítica,
+com os mesmos valores/gates. O logging usa JSON da biblioteca padrão, com eventos e
+códigos estruturados, sem conteúdo do CSV ou registros completos de veículos.
+Exceções de validação pertencem ao módulo de frota; a camada HTTP preserva os
+códigos/envelopes anteriores. Exceções de consulta são mapeadas para os mesmos 404/503.
+
+O pacote antigo foi reduzido a uma **fachada de compatibilidade**: notebooks e
+clientes que usam `from fleet_force_engine import Settings, run_engine, EngineOutput`
+continuam funcionando. Implementações antigas duplicadas foram removidas; imports
+internos antigos (`fleet_force_engine.ingest`, `.learning`, etc.) devem usar os
+módulos de `src/core/` acima. `run_engine()` mantém seus argumentos e `EngineOutput`,
+mas agora apenas compõe adapters e o pipeline; exportação é uma opção externa ao
+caso de uso. `python run.py ...`, `python -m src.cli ...` e `uvicorn api:app` continuam
+válidos. A entrada FastAPI recomendada é `uvicorn src.main:app`.
 
 ## Instalação e uso
 
@@ -118,7 +182,7 @@ O CSV externo deve incluir `fleet_id`, `model`, `km`, `kmpl`, `reference_period`
 A API serve relatórios já calculados por GET e analisa uploads CSV por POST, conforme descrito abaixo. Instale `requirements-api.txt` e execute:
 
 ```bash
-uvicorn api:app --port 8000 --reload
+uvicorn src.main:app --port 8000 --reload
 ```
 
 Rotas: `GET /v1/fleet/summary`, `/v1/fleet/vehicles?offset=0&limit=50`, `/v1/fleet/vehicles/{fleet_id}`, `/v1/fleet/categories`, `/v1/fleet/priorities`, `/v1/fleet/reference-prices`, `/v1/fleet/models/quality`. Consulte `examples/fleet.service.ts` para o `HttpClient` Angular. A API fornecida é um exemplo sem autenticação; **implemente autenticação e autorização multi-tenant antes de publicação**.
@@ -143,7 +207,7 @@ existentes em `outputs/`.
 
 ```bash
 pip install -r requirements-api.txt
-uvicorn api:app --reload --port 8000
+uvicorn src.main:app --reload --port 8000
 
 curl -X POST \
   "http://localhost:8000/v1/fleet/analyze" \
@@ -307,3 +371,20 @@ Execute todos os testes existentes e de upload após instalar as dependências A
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+### Verificação arquitetural e de regressão
+
+```bash
+python -m compileall -q src fleet_force_engine api.py run.py
+python -m unittest discover -s tests -v
+python -m src.cli --help
+```
+
+`tests/test_engine.py` mantém os testes de fórmulas e gates.
+`tests/test_api_analyze.py` mantém a cobertura do contrato HTTP, uploads concorrentes,
+fallback, validação, serialização e limpeza. `tests/test_services.py` verifica os
+serviços com colaboradores em memória, ausência de I/O no caso de uso e uma resposta
+completa congelada da implementação anterior (`tests/fixtures/analysis_baseline.json`).
+`tests/test_adapters.py` cobre CSV/PDF, cache e invalidação, isolamento de referências,
+proveniência de rebuild, repositório de relatórios, Joblib, configuração e CLI real.
+Não há mudança intencional nas fórmulas, totais, elegibilidade de modelos ou confiança.
